@@ -90,6 +90,10 @@ button:disabled, select:disabled, input:disabled { cursor: not-allowed; opacity:
 .preset-strip .eyebrow { color: var(--color-copper); }
 .preset-strip p { color: var(--color-muted); }
 .table-subline, .record-title span, .mono-cell { color: var(--color-muted); }
+.record-external-id { display: block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.table-scroll th:last-child, .table-scroll td:last-child { position: sticky; right: 0; background: var(--color-surface); box-shadow: -12px 0 18px #151719c9; }
+.table-scroll th:last-child { background: #272829; }
+.table-scroll tbody tr:hover td:last-child { background: var(--color-surface-hover); }
 .table-subline:hover { color: var(--color-accent); }
 th { background: #272829; color: var(--color-muted); }
 td { color: var(--color-muted); }
@@ -144,4 +148,3 @@ td { color: var(--color-muted); }
   .runs-table { width: 100%; min-width: 0; }
   .runs-table th:last-child, .runs-table td:last-child { position: static; box-shadow: none; }
 }
-
