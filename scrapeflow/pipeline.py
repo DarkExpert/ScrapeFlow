@@ -3,7 +3,7 @@ import hashlib
 import ipaddress
 import json
 import socket
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 from bs4 import BeautifulSoup
@@ -56,6 +56,7 @@ class HtmlConfig(BaseModel):
     kind: str = "html"
     item_selector: str
     fields: dict[str, HtmlField]
+    allow_empty: bool = False
 
     @model_validator(mode="after")
     def valid(self):
@@ -70,6 +71,7 @@ class JsonConfig(BaseModel):
     kind: str = "json"
     items_path: str
     fields: dict[str, str]
+    allow_empty: bool = False
 
     @model_validator(mode="after")
     def valid(self):
@@ -104,9 +106,9 @@ def fetch(url: str, transport=None):
     public_url(url)
     with httpx.Client(timeout=10, follow_redirects=False, transport=transport, trust_env=False) as client:
         with client.stream("GET", url, headers={"User-Agent": "ScrapeFlow/0.1 (+public-data-fetcher)"}) as response:
-            response.raise_for_status()
             if response.is_redirect:
                 raise ValueError("Redirects are disabled")
+            response.raise_for_status()
             chunks = []
             size = 0
             for chunk in response.iter_bytes():
@@ -128,7 +130,7 @@ def path_get(value, path):
 def extract(kind: str, config: dict, content: bytes):
     if kind == "json":
         data = json.loads(content)
-        items = path_get(data, config["items_path"])
+        items = data if config["items_path"] == "$" else path_get(data, config["items_path"])
         if not isinstance(items, list):
             raise ValueError("items_path must resolve to an array")
         return [{name: path_get(item, path) for name, path in config["fields"].items()} for item in items]
@@ -143,18 +145,28 @@ def extract(kind: str, config: dict, content: bytes):
     return result
 
 
+def stable_url(value: str) -> str:
+    parsed = urlsplit(value)
+    hostname = (parsed.hostname or "").lower()
+    port = parsed.port
+    default_port = 80 if parsed.scheme == "http" else 443
+    host = f"[{hostname}]" if ":" in hostname else hostname
+    netloc = host if port in (None, default_port) else f"{host}:{port}"
+    return urlunsplit((parsed.scheme.lower(), netloc, parsed.path or "/", parsed.query, ""))
+
+
 def normalize(item: dict, base_url: str):
     title = str(item.get("title") or "").strip()
     raw_url = str(item.get("url") or "").strip()
     if not title or not raw_url:
         raise ValueError("Record requires title and url")
-    url = urljoin(base_url, raw_url)
+    url = stable_url(urljoin(base_url, raw_url))
     parsed = urlsplit(url)
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
         raise ValueError("Record URL must be HTTP(S)")
     external_id = str(item["external_id"]).strip() if item.get("external_id") is not None else None
     payload = {key: value for key, value in item.items() if key not in ("external_id", "title", "url")}
-    identity = external_id or hashlib.sha256(json.dumps([url, title]).encode()).hexdigest()
+    identity = f"id:{external_id}" if external_id else f"url:{url}"
     canonical = {"external_id": external_id, "title": title, "url": url, "payload": payload}
     digest = hashlib.sha256(json.dumps(canonical, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest()
     return identity, canonical, digest
@@ -171,8 +183,13 @@ def execute(session, source, fetcher=fetch):
         stage = "extract"
         items = extract(source.kind, source.config_json, content)
         run.extracted_count = len(items)
+        if not items and not source.config_json.get("allow_empty", False):
+            raise ValueError("Extraction returned zero records; set allow_empty=true only for intentionally empty sources")
         stage = "normalize"
         normalized = [normalize(item, final_url) for item in items]
+        identities = [identity for identity, _, _ in normalized]
+        if len(identities) != len(set(identities)):
+            raise ValueError("Extraction produced duplicate record identities")
         stage = "persist"
         for identity, data, digest in normalized:
             record = session.scalar(select(Record).where(Record.source_id == source.id, Record.identity_key == identity))
@@ -194,18 +211,23 @@ def execute(session, source, fetcher=fetch):
             session.flush()
             record.current_version_id = version.id
         run.status = "succeeded"
+        run.finished_at = utcnow()
         session.add(RunLog(run_id=run.id, stage="complete", level="info", message="Run completed"))
         session.commit()
     except Exception as exc:
+        fetched_count, extracted_count = run.fetched_count, run.extracted_count
         session.rollback()
         run = session.get(ScrapeRun, run.id)
         run.status = "failed"
+        run.fetched_count = fetched_count
+        run.extracted_count = extracted_count
+        run.created_count = 0
+        run.updated_count = 0
+        run.unchanged_count = 0
         run.error_count = 1
         run.finished_at = utcnow()
         session.add(RunLog(run_id=run.id, stage=stage, level="error", message=f"{type(exc).__name__}: {exc}"))
         session.commit()
         return run
-    run.finished_at = utcnow()
-    session.commit()
     return run
 
