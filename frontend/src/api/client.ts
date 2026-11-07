@@ -21,11 +21,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     response = await fetch(BASE + path, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error
-    throw new ApiError('Cannot connect to the ScrapeFlow API. Start FastAPI on port 8000 and try again.')
+    throw new ApiError('Cannot connect to the ScrapeFlow API. Start FastAPI and try again.')
   }
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { detail?: unknown } | null
-    throw new ApiError(messageFor(body?.detail), response.status)
+    const message = body?.detail === undefined && response.status >= 500
+      ? 'Cannot connect to the ScrapeFlow API. Start FastAPI and try again.'
+      : messageFor(body?.detail)
+    throw new ApiError(message, response.status)
   }
   if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
