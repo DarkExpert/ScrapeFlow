@@ -12,7 +12,10 @@ export function useResource<T>(load: (signal: AbortSignal) => Promise<T>, keys: 
     load(controller.signal).then((value) => {
       if (!controller.signal.aborted) setData(value)
     }).catch((reason: unknown) => {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Unexpected request failure')
+      if (!controller.signal.aborted) {
+        setData(null)
+        setError(reason instanceof Error ? reason.message : 'Unexpected request failure')
+      }
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
     // Dependency changes intentionally trigger an abort and a fresh request.
