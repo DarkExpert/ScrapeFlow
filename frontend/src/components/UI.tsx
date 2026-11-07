@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { AlertCircle, ArrowUpRight, LoaderCircle, X } from 'lucide-react'
 import type { RunStatus } from '../types'
 
@@ -28,7 +28,26 @@ export function Loading({ label = 'Loading data' }: { label?: string }) {
 }
 
 export function Drawer({ title, kicker, onClose, children }: { title: string; kicker: string; onClose: () => void; children: ReactNode }) {
-  return <div className="drawer-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><aside className="drawer" role="dialog" aria-modal="true" aria-label={title}><div className="drawer-head"><div><span className="eyebrow">{kicker}</span><h2>{title}</h2></div><button className="icon-button" aria-label="Close panel" onClick={onClose}><X size={19} /></button></div><div className="drawer-body">{children}</div></aside></div>
+  const drawerRef = useRef<HTMLElement>(null)
+  const closeRef = useRef(onClose)
+  closeRef.current = onClose
+  useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const drawer = drawerRef.current
+    drawer?.querySelector<HTMLElement>('input, select, button')?.focus()
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); closeRef.current(); return }
+      if (event.key !== 'Tab' || !drawer) return
+      const focusable = [...drawer.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href]')]
+      if (!focusable.length) return
+      const first = focusable[0], last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => { document.removeEventListener('keydown', onKeyDown); previous?.focus() }
+  }, [])
+  return <div className="drawer-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><aside ref={drawerRef} className="drawer" role="dialog" aria-modal="true" aria-label={title}><div className="drawer-head"><div><span className="eyebrow">{kicker}</span><h2>{title}</h2></div><button className="icon-button" aria-label="Close panel" onClick={onClose}><X size={19} /></button></div><div className="drawer-body">{children}</div></aside></div>
 }
 
 export function Pagination({ offset, limit, total, onPage }: { offset: number; limit: number; total: number; onPage: (offset: number) => void }) {
@@ -40,10 +59,11 @@ export function ExternalLink({ href, children }: { href: string; children: React
   return <a className="external-link" href={href} target="_blank" rel="noreferrer">{children}<ArrowUpRight size={14} /></a>
 }
 
-export const formatDate = (value?: string | null) => value ? new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value)) : '—'
+const parseApiDate = (value: string) => new Date(/[zZ]|[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`)
+export const formatDate = (value?: string | null) => value ? new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(parseApiDate(value)) : '—'
 export const timeAgo = (value?: string | null) => {
   if (!value) return 'Never'
-  const seconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000))
+  const seconds = Math.max(0, Math.round((Date.now() - parseApiDate(value).getTime()) / 1000))
   if (seconds < 60) return 'Just now'
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
