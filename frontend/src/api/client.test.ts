@@ -22,6 +22,11 @@ describe('API client', () => {
     await expect(api.stats()).rejects.toThrow('Cannot connect to the ScrapeFlow API')
   })
 
+  it('explains a failed development proxy response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 500 })))
+    await expect(api.stats()).rejects.toThrow('Cannot connect to the ScrapeFlow API')
+  })
+
   it('collects every backend page without inventing a larger page size', async () => {
     const load = vi.fn().mockResolvedValueOnce({ items: [1, 2], total: 3, limit: 2, offset: 0 }).mockResolvedValueOnce({ items: [3], total: 3, limit: 2, offset: 2 })
     expect(await allPages(load)).toEqual([1, 2, 3])
