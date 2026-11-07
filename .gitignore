@@ -25,10 +25,10 @@ node_modules/
 frontend/dist/
 frontend/*.tsbuildinfo
 coverage/
+.tmp/
 
 # Editors and OS
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
-

@@ -1,11 +1,12 @@
 """Register and execute the two bundled examples against a running local API."""
 import json
+import os
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 
-API = "http://127.0.0.1:8000/api/v1"
+API = os.getenv("SCRAPEFLOW_API_BASE_URL", "http://127.0.0.1:8000/api/v1").rstrip("/")
 
 
 def post(path, payload=None):
@@ -25,4 +26,3 @@ for filename in ("quotes.json", "photos.json"):
         raise
     run = post(f"/sources/{created['id']}/runs")
     print(f"{source['name']}: run {run['id']} {run['status']} ({run['extracted_count']} extracted)")
-
