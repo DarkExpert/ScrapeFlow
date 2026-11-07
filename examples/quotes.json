@@ -1,0 +1,17 @@
+{
+  "name": "Quotes to Scrape",
+  "kind": "html",
+  "url": "https://quotes.toscrape.com/",
+  "config": {
+    "kind": "html",
+    "item_selector": ".quote",
+    "fields": {
+      "external_id": {"selector": ".text", "attribute": "text"},
+      "title": {"selector": ".text", "attribute": "text"},
+      "url": {"selector": "a[href^='/author/']", "attribute": "href"},
+      "author": {"selector": ".author", "attribute": "text"}
+    }
+  },
+  "enabled": true
+}
+
