@@ -1,10 +1,10 @@
 # ScrapeFlow
 
-ScrapeFlow is a planned local-first web scraping dashboard. Its MVP will collect records from configured HTML pages and JSON APIs, retain changes over time, and show sources, runs, records, and basic statistics.
+ScrapeFlow is a local-first web scraping dashboard. It collects records from configured HTML pages and JSON APIs, retains changes over time, and shows sources, runs, records, and statistics.
 
 ## Status
 
-Phase 0 defines the architecture and implementation plan. The application has not been implemented.
+The FastAPI scraping engine and React operations dashboard are implemented. Scraping runs are started manually; the dashboard reads and writes the real local API.
 
 ## Planned stack
 
@@ -12,8 +12,9 @@ Phase 0 defines the architecture and implementation plan. The application has no
 - Frontend: React, TypeScript, Vite, Tailwind CSS
 - Tests: offline automated backend and frontend tests
 
-See [architecture](docs/ARCHITECTURE.md) and [implementation plan](docs/IMPLEMENTATION_PLAN.md).
+See [backend setup](docs/BACKEND.md), [dashboard setup](docs/FRONTEND.md), [architecture](docs/ARCHITECTURE.md), and [implementation plan](docs/IMPLEMENTATION_PLAN.md).
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
