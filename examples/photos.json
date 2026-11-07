@@ -1,0 +1,17 @@
+{
+  "name": "JSONPlaceholder Photos",
+  "kind": "json",
+  "url": "https://jsonplaceholder.typicode.com/photos?albumId=1",
+  "config": {
+    "kind": "json",
+    "items_path": "$",
+    "fields": {
+      "external_id": "id",
+      "title": "title",
+      "url": "url",
+      "thumbnail": "thumbnailUrl"
+    }
+  },
+  "enabled": true
+}
+
