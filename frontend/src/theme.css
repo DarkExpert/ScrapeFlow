@@ -138,3 +138,10 @@ td { color: var(--color-muted); }
   .table-scroll tbody tr:hover td:last-child { background: var(--color-surface-hover); }
 }
 
+@media (max-width: 480px) {
+  .runs-table th:nth-child(2), .runs-table td:nth-child(2),
+  .runs-table th:nth-child(n+4):nth-child(-n+8), .runs-table td:nth-child(n+4):nth-child(-n+8) { display: none; }
+  .runs-table { width: 100%; min-width: 0; }
+  .runs-table th:last-child, .runs-table td:last-child { position: static; box-shadow: none; }
+}
+
