@@ -23,6 +23,7 @@ build/
 # Frontend
 node_modules/
 frontend/dist/
+frontend/*.tsbuildinfo
 coverage/
 
 # Editors and OS
@@ -30,3 +31,4 @@ coverage/
 .vscode/
 .DS_Store
 Thumbs.db
+
